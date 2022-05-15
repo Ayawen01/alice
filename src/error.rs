@@ -1,0 +1,3 @@
+pub enum AliceError {
+    SyntaxError
+}
