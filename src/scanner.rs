@@ -80,7 +80,7 @@ impl Scanner {
 
                 b'"' => {
                     match self.string() {
-                        Ok(str) => tokens.push(Token{r#type: TokenType::String, lexeme: None, literal: Some(str), line: self.line}),
+                        Ok(literal) => tokens.push(Token{r#type: TokenType::String, lexeme: None, literal, line: self.line}),
                         Err(e) => {
                             is_error = true;
                             errors.push(e);
@@ -92,7 +92,7 @@ impl Scanner {
                     if self.is_digit(byte) {
                         match self.number() {
                             Ok((r#type, literal)) => {
-                                tokens.push(Token{r#type, lexeme: None, literal: Some(literal), line: self.line});
+                                tokens.push(Token{r#type, lexeme: None, literal, line: self.line});
                             }
                             Err(e) => {
                                 is_error = true;
@@ -124,7 +124,7 @@ impl Scanner {
         Ok(tokens)
     }
 
-    fn string<'a>(&mut self) -> Result<Literal, AliceError> {
+    fn string<'a>(&mut self) -> Result<Option<Literal>, AliceError> {
         let start_index = self.current;
 
         while self.peek() != b'"' && !self.is_at_end() {
@@ -142,10 +142,10 @@ impl Scanner {
 
         self.advance();
 
-        Ok(Literal::String(str))
+        Ok(Some(Literal::String(str)))
     }
 
-    fn number<'a>(&mut self) -> Result<(TokenType, Literal), AliceError> {
+    fn number<'a>(&mut self) -> Result<(TokenType, Option<Literal>), AliceError> {
         let mut is_double = false;
         let start_index = self.current - 1;
         while self.is_digit(self.peek()) {
@@ -165,12 +165,12 @@ impl Scanner {
         
         if is_double {
             match num.parse::<f64>() {
-                Ok(num) => Ok((TokenType::F64, Literal::F64(num))),
+                Ok(num) => Ok((TokenType::F64, Some(Literal::F64(num)))),
                 Err(_) => todo!(),
             }
         } else {
             match num.parse::<i64>() {
-                Ok(num) => Ok((TokenType::I64, Literal::I64(num))),
+                Ok(num) => Ok((TokenType::I64, Some(Literal::I64(num)))),
                 Err(_) => todo!(),
             }
         }
