@@ -21,7 +21,7 @@ pub enum Literal {
 #[derive(Debug)]
 pub enum TokenType {
     // Single-character tokens.
-    LeftParen, RightParen, LeftBrace, RightBrace,
+    LeftParen, RightParen, LeftBrace, RightBrace, LeftSquare, RightSquare,
     Comma, Dot, Minus, Plus, Slash, Star, Semicolon,
 
     // One or two character tokens.
@@ -29,6 +29,7 @@ pub enum TokenType {
     Equal, EqualEqual,
     Greater, GreaterEqual,
     Less, LessEqual,
+    Arrowhead,
 
     // Literals.
     Identifier, String, I64, F64, Array, True, False, Nil,

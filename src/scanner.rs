@@ -22,6 +22,8 @@ impl Scanner {
             match byte {
                 b'(' => tokens.push(Token{r#type: TokenType::LeftParen,     lexeme: None, literal: None, line: self.line}),
                 b')' => tokens.push(Token{r#type: TokenType::RightParen,    lexeme: None, literal: None, line: self.line}),
+                b'[' => tokens.push(Token{r#type: TokenType::LeftSquare,    lexeme: None, literal: None, line: self.line}),
+                b']' => tokens.push(Token{r#type: TokenType::RightSquare,    lexeme: None, literal: None, line: self.line}),
                 b'{' => tokens.push(Token{r#type: TokenType::LeftBrace,     lexeme: None, literal: None, line: self.line}),
                 b'}' => tokens.push(Token{r#type: TokenType::RightBrace,    lexeme: None, literal: None, line: self.line}),
                 b',' => tokens.push(Token{r#type: TokenType::Comma,         lexeme: None, literal: None, line: self.line}),
@@ -42,6 +44,8 @@ impl Scanner {
                 b'=' => {
                     let token_type = if self.matching(b'=') {
                         TokenType::EqualEqual
+                    } else if self.matching(b'>') {
+                        TokenType::Arrowhead
                     } else {
                         TokenType::Equal
                     };
@@ -100,11 +104,11 @@ impl Scanner {
                             }
                         }
                     } else if self.is_alpha(byte) {
-                        let (r#type, id, literal) = self.identifier();
-                        tokens.push(Token { r#type, lexeme: Some(id), literal, line: self.line })
+                        let (r#type, lexeme, literal) = self.identifier();
+                        tokens.push(Token { r#type, lexeme, literal, line: self.line })
                     } else {
                         is_error = true;
-                        errors.push(AliceError::SyntaxError);
+                        errors.push(AliceError::SyntaxError(format!("unknown '{}'.", byte as char).into(), self.line));
                     }
                 }
             }
@@ -135,7 +139,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            return Err(AliceError::SyntaxError)
+            return Err(AliceError::SyntaxError("not a full string.".into(), self.line))
         }
 
         let str = String::from_utf8(self.source[start_index..self.current].to_vec()).unwrap();
@@ -164,19 +168,15 @@ impl Scanner {
         let num = String::from_utf8(self.source[start_index..self.current].to_vec()).unwrap();
         
         if is_double {
-            match num.parse::<f64>() {
-                Ok(num) => Ok((TokenType::F64, Some(Literal::F64(num)))),
-                Err(_) => todo!(),
-            }
+            let num = num.parse::<f64>().unwrap();
+            Ok((TokenType::F64, Some(Literal::F64(num))))
         } else {
-            match num.parse::<i64>() {
-                Ok(num) => Ok((TokenType::I64, Some(Literal::I64(num)))),
-                Err(_) => todo!(),
-            }
+            let num = num.parse::<i64>().unwrap();
+            Ok((TokenType::I64, Some(Literal::I64(num))))
         }
     }
 
-    fn identifier<'a>(&mut self) -> (TokenType, String, Option<Literal>) {
+    fn identifier<'a>(&mut self) -> (TokenType, Option<String>, Option<Literal>) {
         let start_index = self.current - 1;
         while self.is_alpha_numeric(self.peek()) {
             self.advance();
@@ -184,21 +184,21 @@ impl Scanner {
 
         let id = String::from_utf8(self.source[start_index..self.current].to_vec()).unwrap();
         match id.as_str() {
-            "and"       =>    (TokenType::And, id, None),
-            "or"        =>    (TokenType::Or, id, None),
-            "if"        =>    (TokenType::If, id, None),
-            "else"      =>    (TokenType::Else, id, None),
-            "true"      =>    (TokenType::True, id, None),
-            "false"     =>    (TokenType::False, id, None),
-            "fn"        =>    (TokenType::Fn, id, None),
-            "let"       =>    (TokenType::Let, id, None),
-            "nil"       =>    (TokenType::Nil, id, None),
-            "println"   =>    (TokenType::Println, id, None),
-            "return"    =>    (TokenType::Return, id, None),
-            "for"       =>    (TokenType::For, id, None),
-            "in"        =>    (TokenType::In, id, None),
+            "and"       =>    (TokenType::And, None, None),
+            "or"        =>    (TokenType::Or, None, None),
+            "if"        =>    (TokenType::If, None, None),
+            "else"      =>    (TokenType::Else, None, None),
+            "true"      =>    (TokenType::True, None, None),
+            "false"     =>    (TokenType::False, None, None),
+            "fn"        =>    (TokenType::Fn, None, None),
+            "let"       =>    (TokenType::Let, None, None),
+            "nil"       =>    (TokenType::Nil, None, None),
+            "println"   =>    (TokenType::Println, None, None),
+            "return"    =>    (TokenType::Return, None, None),
+            "for"       =>    (TokenType::For, None, None),
+            "in"        =>    (TokenType::In, None, None),
             _ => {
-                (TokenType::Identifier, id.clone(), Some(Literal::Id(id)))
+                (TokenType::Identifier, Some(id.clone()), Some(Literal::Id(id)))
             }
         }
     }
