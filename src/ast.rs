@@ -65,7 +65,7 @@ pub enum Expr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AliceObject {
     Array(Vec<AliceObject>),
     String(String),
