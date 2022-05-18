@@ -10,6 +10,7 @@ pub trait VisitExpr<R> {
     fn visit_call_expr(&mut self, callee: Expr, paren: Token, arguments: Vec<Expr>) -> Result<R, AliceError>;
     fn visit_literal_expr(&mut self, value: AliceObject) -> Result<R, AliceError>;
     fn visit_array_expr(&mut self, list: Vec<Expr>) -> Result<R, AliceError>;
+    fn visit_range_expr(&mut self, start: Expr, end: Expr) -> Result<R, AliceError>;
 
     fn evaluate(&mut self, expr: Expr) -> Result<R, AliceError> {
         match expr {
@@ -21,7 +22,8 @@ pub trait VisitExpr<R> {
             Expr::Logical { left, operator, right } => self.visit_logical_expr(*left, operator, *right),
             Expr::Call { callee, paren, arguments } => self.visit_call_expr(*callee, paren, arguments),
             Expr::Literal { value } => self.visit_literal_expr(value),
-            Expr::Array { value } => self.visit_array_expr(value)
+            Expr::Array { value } => self.visit_array_expr(value),
+            Expr::Range { start, end } => self.visit_range_expr(*start, *end)
         }
     }
 }
@@ -62,12 +64,17 @@ pub enum Expr {
     },
     Array {
         value: Vec<Expr>
+    },
+    Range {
+        start: Box<Expr>,
+        end: Box<Expr>
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum AliceObject {
     Array(Vec<AliceObject>),
+    Range(i64, i64),
     String(String),
     F64(f64),
     I64(i64),

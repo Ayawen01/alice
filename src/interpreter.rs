@@ -1,4 +1,4 @@
-use std::{rc::Rc, cell::RefCell};
+use std::{rc::Rc, cell::RefCell, fmt::format};
 
 use crate::{environment::Environment, ast::{Expr, Stmt, AliceObject, VisitExpr, VisitStmt}, error::AliceError, token::{Token, TokenType, Literal}};
 
@@ -47,6 +47,7 @@ impl Interpreter {
         match value {
             AliceObject::String(str) => str,
             AliceObject::Array(list) => format!("{:?}", list),
+            AliceObject::Range(start, end) => format!("[{}..{}]", start, end),
             AliceObject::F64(num) => num.to_string(),
             AliceObject::I64(num) => num.to_string(),
             AliceObject::Boolean(bool) => bool.to_string(),
@@ -73,6 +74,19 @@ impl Interpreter {
             for item in array {
                 self.environment.borrow_mut().assign(name.clone(), item).unwrap();
                 self.execute_block(body.clone(), self.environment.clone()).unwrap();
+            }
+        };
+    }
+
+    fn execute_range(&mut self, name: Token, range: AliceObject, body: Vec<Stmt>) {
+        if let AliceObject::Range(start, end) = range {
+            let mut index = start;
+            while index < end {
+
+                self.environment.borrow_mut().assign(name.clone(), AliceObject::I64(index)).unwrap();
+                self.execute_block(body.clone(), self.environment.clone()).unwrap();
+
+                index += 1;
             }
         };
     }
@@ -236,6 +250,16 @@ impl VisitExpr<AliceObject> for Interpreter {
         }
         Ok(AliceObject::Array(values))
     }
+
+    fn visit_range_expr(&mut self, start: Expr, end: Expr) -> Result<AliceObject, AliceError> {
+        let start = self.evaluate(start)?;
+        let end = self.evaluate(end)?;
+        if let (AliceObject::I64(l), AliceObject::I64(r)) = (start, end) {
+            Ok(AliceObject::Range(l, r))
+        } else {
+            Err(AliceError::RuntimeError("Range(i64..i64).".into(), 0))
+        }
+    }
 }
 
 impl VisitStmt<()> for Interpreter {
@@ -295,9 +319,17 @@ impl VisitStmt<()> for Interpreter {
     fn visit_for_stmt(&mut self, value: Token, expression: Expr, body: Vec<Stmt>) -> Result<(), AliceError> {
         let v = value.clone();
         let name = value.lexeme.unwrap();
-        let list = self.evaluate(expression)?;
         self.environment.borrow_mut().define(name.clone(), AliceObject::Nil);
-        self.execute_array(v, list, body);
+
+        let object = self.evaluate(expression)?;
+
+        if let AliceObject::Array(list) = object.clone() {
+            self.execute_array(v, object, body);
+        } else if let AliceObject::Range(start, end) = object.clone() {
+            self.execute_range(v, object, body);
+        };
+        
+        
         Ok(())
     }
 }

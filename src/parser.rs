@@ -146,8 +146,10 @@ impl Parser {
             Expr::Array { value }
         } else if let Ok(Expr::Variable { name }) = expr {
             Expr::Variable { name }
+        } else if let Ok(Expr::Range { start, end }) = expr {
+            Expr::Range { start, end }
         } else {
-            return Err(AliceError::ParseError("Expect [...].".into(), self.peek().line))
+            return Err(AliceError::ParseError("Expect expression.".into(), self.peek().line))
         };
 
         if self.matches(&[TokenType::LeftBrace]) {
@@ -328,6 +330,17 @@ impl Parser {
 
             while !self.matches(&[TokenType::RightSquare]) {
                 let expr = self.expression()?;
+
+                if self.peek().r#type == TokenType::Dot {
+                    self.advance();
+                    if self.peek().r#type == TokenType::Dot {
+                        self.advance();
+                        let end = self.expression()?;
+                        self.advance();
+                        return Ok(Expr::Range { start: Box::new(expr), end: Box::new(end) });
+                    }
+                }
+
                 if let Err(e) = self.consume(TokenType::Comma, "Expect ',' after expression.") {
                     if self.peek().r#type != TokenType::RightSquare {
                         return Err(e);

@@ -2,30 +2,37 @@ use alice::{scanner::Scanner, parser::Parser, interpreter::Interpreter};
 
 fn main() {
     let code = r#"
-        let arr = [1,2,3];
-        println(arr);
-        let dyn_arr = [114514, "hello world", true, arr];
+        // 变量
+        // type: nil, boolean, i64, f64, string, array
+        let v; // nil
+        let str = "hello alice.";
+        let num = 114514;
+        let arr = [1, 2, 3];
+        let dyn_arr = [114514, "hello alice", true];
         println(dyn_arr);
-        //println([1 > 2,[[[[[1],[1]],[4]]]]]);
-        let v = 1;
-        v = nil;
-        println(["a" == "a", 114514.1919]);
-        println(v == nil);
-        println("------------------------------------------");
         
-        for item in [1,2,3,4,5, nil] {
+        // 判断
+        let bool = true;
+        if bool {
+        println("^_^");
+        } else {
+        println("QWQ");
+        }
+        
+        // 循环
+        for item in [1,2, v, 3,4,5] {
             println(item);
-            println("------------------------------------------");
         }
 
-        println("------------------------------------------");
-        println("------------------------------------------");
-
-        for item in dyn_arr {
+        println("------------------range-----------------");
+        let start = 0;
+        let end = 100;
+        let x = [start..end];
+        for item in [x] {
             println(item);
-            println("------------------------------------------");
         }
     "#;
+
     let mut scanner = Scanner::new(code.to_string().into_bytes());
     let r = scanner.scan_tokens();
     let tokens = match r {
