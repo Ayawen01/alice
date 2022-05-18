@@ -98,6 +98,9 @@ impl Parser {
         if self.matches(&[TokenType::If]) {
             self.if_statement()
         }
+        else if self.matches(&[TokenType::For]) {
+            self.for_statement()
+        }
         else if self.matches(&[TokenType::Println]) {
             self.print_statement()
         }
@@ -126,6 +129,33 @@ impl Parser {
         }
 
         Ok(Stmt::If { condition, then_branch, else_branch })
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt, AliceError> {
+        let value = if let Ok(Expr::Variable { name }) = self.expression() {
+            name
+        } else {
+            return Err(AliceError::ParseError("Expect variable.".into(), self.peek().line))
+        };
+
+        self.consume(TokenType::In, "Expext 'in' after variable.")?;
+
+        let expr = self.expression();
+
+        let expression = if let Ok(Expr::Array { value }) = expr {
+            Expr::Array { value }
+        } else if let Ok(Expr::Variable { name }) = expr {
+            Expr::Variable { name }
+        } else {
+            return Err(AliceError::ParseError("Expect [...].".into(), self.peek().line))
+        };
+
+        if self.matches(&[TokenType::LeftBrace]) {
+            let block = self.block()?;
+            Ok(Stmt::For { value, expression, body: block }) 
+        } else {
+            return Err(AliceError::ParseError("Expect '{' after [...].".into(), self.peek().line));
+        }
     }
 
     fn block(&mut self) -> Result<Vec<Stmt>, AliceError> {

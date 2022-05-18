@@ -67,6 +67,15 @@ impl Interpreter {
 
         Ok(())
     }
+
+    fn execute_array(&mut self, name: Token, list: AliceObject, body: Vec<Stmt>) {
+        if let AliceObject::Array(array) = list {
+            for item in array {
+                self.environment.borrow_mut().assign(name.clone(), item).unwrap();
+                self.execute_block(body.clone(), self.environment.clone()).unwrap();
+            }
+        };
+    }
 }
 
 impl VisitExpr<AliceObject> for Interpreter {
@@ -281,5 +290,14 @@ impl VisitStmt<()> for Interpreter {
             Ok(_) => Ok(()),
             Err(e) => Err(e)
         }
+    }
+
+    fn visit_for_stmt(&mut self, value: Token, expression: Expr, body: Vec<Stmt>) -> Result<(), AliceError> {
+        let v = value.clone();
+        let name = value.lexeme.unwrap();
+        let list = self.evaluate(expression)?;
+        self.environment.borrow_mut().define(name.clone(), AliceObject::Nil);
+        self.execute_array(v, list, body);
+        Ok(())
     }
 }

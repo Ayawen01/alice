@@ -26,7 +26,7 @@ pub trait VisitExpr<R> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Grouping {
         expression: Box<Expr>
@@ -82,6 +82,7 @@ pub trait VisitStmt<R> {
     fn visit_block_stmt(&mut self, statements: Vec<Stmt>) -> Result<R, AliceError>;
     fn visit_fn_stmt(&mut self, name: Token, params: Vec<Token>, body: Vec<Stmt>) -> Result<R, AliceError>;
     fn visit_if_stmt(&mut self, condition: Expr, then_branch: Stmt, else_branch: Option<Box<Stmt>>) -> Result<R, AliceError>;
+    fn visit_for_stmt(&mut self, value: Token, expression: Expr, body: Vec<Stmt>) -> Result<R, AliceError>;
     fn visit_expression_stmt(&mut self, expression: Expr) -> Result<R, AliceError>;
 
     fn execute(&mut self, stmt: Stmt) -> Result<R, AliceError> {
@@ -92,12 +93,13 @@ pub trait VisitStmt<R> {
             Stmt::Block { statements } => self.visit_block_stmt(statements),
             Stmt::Fn { name, params, body } => self.visit_fn_stmt(name, params, body),
             Stmt::If { condition, then_branch, else_branch } => self.visit_if_stmt(condition, *then_branch, else_branch),
+            Stmt::For { value, expression, body } => self.visit_for_stmt(value, expression, body),
             Stmt::Expression { expression } => self.visit_expression_stmt(expression)
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Stmt {
     Println {
         expression: Expr
@@ -122,6 +124,11 @@ pub enum Stmt {
         condition: Expr,
         then_branch: Box<Stmt>,
         else_branch: Option<Box<Stmt>>
+    },
+    For {
+        value: Token,
+        expression: Expr,
+        body: Vec<Stmt>
     },
     Expression {
         expression: Expr
