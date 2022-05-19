@@ -28,9 +28,13 @@ fn main() {
         let start = 0;
         let end = 100;
         let x = [start..end];
-        for item in [x] {
+        for item in x {
             println(item);
         }
+
+        println([0..100]);
+
+        println("114" + 514);
     "#;
 
     let mut scanner = Scanner::new(code.to_string().into_bytes());

@@ -173,9 +173,14 @@ impl Parser {
     }
 
     fn print_statement(&mut self) -> Result<Stmt, AliceError> {
+        if self.matches(&[TokenType::LeftParen]) && self.matches(&[TokenType::RightParen]) {
+            self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
+            return Ok(Stmt::Println { expression: None })
+        }
+        self.back();
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
-        Ok(Stmt::Println { expression: expr })
+        Ok(Stmt::Println { expression: Some(expr) })
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, AliceError> {
@@ -390,11 +395,22 @@ impl Parser {
         self.tokens[self.current].clone()
     }
 
+    #[inline]
     fn advance(&mut self) -> Token {
         if !self.is_at_end() {
             self.current += 1;
         }
         self.previous()
+    }
+
+    #[inline]
+    fn back(&mut self) -> bool {
+        if self.current > 0 {
+            self.current -= 1;
+            true
+        } else {
+            false
+        }
     }
 
     fn consume<'a>(&'a mut self, t: TokenType, msg: &'a str) -> Result<Token, AliceError> {

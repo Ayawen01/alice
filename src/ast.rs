@@ -83,7 +83,7 @@ pub enum AliceObject {
 }
 
 pub trait VisitStmt<R> {
-    fn visit_println_stmt(&mut self, expression: Expr) -> Result<R, AliceError>;
+    fn visit_println_stmt(&mut self, expression: Option<Expr>) -> Result<R, AliceError>;
     fn visit_return_stmt(&mut self, keyword: Token, value: Option<Expr>) -> Result<R, AliceError>;
     fn visit_var_stmt(&mut self, name: Token, initializer: Option<Expr>) -> Result<R, AliceError>;
     fn visit_block_stmt(&mut self, statements: Vec<Stmt>) -> Result<R, AliceError>;
@@ -109,7 +109,7 @@ pub trait VisitStmt<R> {
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Println {
-        expression: Expr
+        expression: Option<Expr>
     },
     Return {
         keyword: Token,

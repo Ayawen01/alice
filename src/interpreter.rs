@@ -1,6 +1,6 @@
-use std::{rc::Rc, cell::RefCell, fmt::format};
+use std::{rc::Rc, cell::RefCell};
 
-use crate::{environment::Environment, ast::{Expr, Stmt, AliceObject, VisitExpr, VisitStmt}, error::AliceError, token::{Token, TokenType, Literal}};
+use crate::{environment::Environment, ast::{Expr, Stmt, AliceObject, VisitExpr, VisitStmt}, error::AliceError, token::{Token, TokenType}};
 
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>
@@ -47,7 +47,7 @@ impl Interpreter {
         match value {
             AliceObject::String(str) => str,
             AliceObject::Array(list) => format!("{:?}", list),
-            AliceObject::Range(start, end) => format!("[{}..{}]", start, end),
+            AliceObject::Range(start, end) => format!("{:?}", value),
             AliceObject::F64(num) => num.to_string(),
             AliceObject::I64(num) => num.to_string(),
             AliceObject::Boolean(bool) => bool.to_string(),
@@ -185,6 +185,8 @@ impl VisitExpr<AliceObject> for Interpreter {
             TokenType::Plus => {
                 match (left.clone(), right.clone()) {
                     (AliceObject::String(l), AliceObject::String(r)) => Ok(AliceObject::String(l + &r)),
+                    (AliceObject::String(l), AliceObject::F64(r)) => Ok(AliceObject::String(format!("{}{}", l, r))),
+                    (AliceObject::String(l), AliceObject::I64(r)) => Ok(AliceObject::String(format!("{}{}", l, r))),
                     (AliceObject::F64(l), AliceObject::F64(r)) => Ok(AliceObject::F64(l + r)),
                     (AliceObject::I64(l), AliceObject::I64(r)) => Ok(AliceObject::I64(l + r)),
                     _ => {
@@ -263,14 +265,20 @@ impl VisitExpr<AliceObject> for Interpreter {
 }
 
 impl VisitStmt<()> for Interpreter {
-    fn visit_println_stmt(&mut self, expression: Expr) -> Result<(), AliceError> {
-        match self.evaluate(expression) {
-            Ok(expr) => {
-                println!("{}", self.stringify(expr));
-                Ok(())
+    fn visit_println_stmt(&mut self, expression: Option<Expr>) -> Result<(), AliceError> {
+        if let Some(expression) = expression {
+            match self.evaluate(expression) {
+                Ok(expr) => {
+                    println!("{}", self.stringify(expr));
+                    Ok(())
+                }
+                Err(e) => Err(e)
             }
-            Err(e) => Err(e)
+        } else {
+            println!();
+            Ok(())
         }
+        
     }
 
     fn visit_return_stmt(&mut self, keyword: Token, value: Option<Expr>) -> Result<(), AliceError> {
