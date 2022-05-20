@@ -10,9 +10,9 @@ pub enum AliceError {
 impl Display for AliceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AliceError::SyntaxError(e, line) => write!(f, "line [{}] SyntaxError: {}", line, e),
-            AliceError::ParseError(e, line) => write!(f, "line [{}] ParseError: {}", line, e),
-            AliceError::RuntimeError(e, line) => write!(f, "line [{}] RuntimeError: {}", line, e)
+            AliceError::SyntaxError(e, line) => write!(f, "line[{}] SyntaxError: {}", line, e),
+            AliceError::ParseError(e, line) => write!(f, "line[{}] ParseError: {}", line, e),
+            AliceError::RuntimeError(e, line) => write!(f, "line[{}] RuntimeError: {}", line, e)
         }
     }
 }

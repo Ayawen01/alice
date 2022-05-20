@@ -335,9 +335,10 @@ impl VisitStmt<()> for Interpreter {
             self.execute_array(v, object, body);
         } else if let AliceObject::Range(start, end) = object.clone() {
             self.execute_range(v, object, body);
-        };
-        
-        
+        } else {
+            return Err(AliceError::RuntimeError("Expect Array or Range(..) expression.".into(), value.line));
+        }
+
         Ok(())
     }
 }

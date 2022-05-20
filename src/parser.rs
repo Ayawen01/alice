@@ -114,9 +114,7 @@ impl Parser {
     }
 
     fn if_statement(&mut self) -> Result<Stmt, AliceError> {
-        //self.consume(TokenType::LeftParen, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
-        //self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
 
         let then_branch = Box::new(self.statement()?);
         
@@ -135,22 +133,12 @@ impl Parser {
         let value = if let Ok(Expr::Variable { name }) = self.expression() {
             name
         } else {
-            return Err(AliceError::ParseError("Expect variable.".into(), self.peek().line))
+            return Err(AliceError::ParseError("Expect variable name.".into(), self.peek().line))
         };
 
         self.consume(TokenType::In, "Expext 'in' after variable.")?;
 
-        let expr = self.expression();
-
-        let expression = if let Ok(Expr::Array { value }) = expr {
-            Expr::Array { value }
-        } else if let Ok(Expr::Variable { name }) = expr {
-            Expr::Variable { name }
-        } else if let Ok(Expr::Range { start, end }) = expr {
-            Expr::Range { start, end }
-        } else {
-            return Err(AliceError::ParseError("Expect expression.".into(), self.peek().line))
-        };
+        let expression = self.expression()?;
 
         if self.matches(&[TokenType::LeftBrace]) {
             let block = self.block()?;
@@ -173,12 +161,14 @@ impl Parser {
     }
 
     fn print_statement(&mut self) -> Result<Stmt, AliceError> {
-        if self.matches(&[TokenType::LeftParen]) && self.matches(&[TokenType::RightParen]) {
+        self.consume(TokenType::LeftParen, "Expect '(' after println.")?;
+        if self.peek().r#type == TokenType::RightParen {
+            self.advance();
             self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
-            return Ok(Stmt::Println { expression: None })
+            return Ok(Stmt::Println { expression: None });
         }
-        self.back();
         let expr = self.expression()?;
+        self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Println { expression: Some(expr) })
     }
@@ -297,30 +287,17 @@ impl Parser {
         if self.matches(&[TokenType::String, TokenType::F64, TokenType::I64]) {
             let literal = self.previous().literal.unwrap();
 
-            if let Literal::String(str) = literal {
-                return Ok(Expr::Literal {
-                    value: AliceObject::String(str)
-                });
-            }
-            
-            if let Literal::F64(num) = literal {
-                return Ok(Expr::Literal { 
-                    value: AliceObject::F64(num)
-                });
-            }
-
-            if let Literal::I64(num) = literal {
-                return Ok(Expr::Literal { 
-                    value: AliceObject::I64(num)
-                });
+            match literal {
+                Literal::String(str) =>  return Ok(Expr::Literal { value: AliceObject::String(str) }),
+                Literal::F64(num) =>        return Ok(Expr::Literal { value: AliceObject::F64(num) }),
+                Literal::I64(num) =>        return Ok(Expr::Literal { value: AliceObject::I64(num) }),
+                _ => ()
             }
         }
 
         if self.matches(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
-            if let Err(e) = self.consume(TokenType::RightParen, "Expect ')' after expression.") {
-                return Err(e);
-            };
+            self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
             return Ok(Expr::Grouping {
                 expression: Box::new(expr)
             });
@@ -330,7 +307,7 @@ impl Parser {
             let mut list = Vec::new();
 
             if self.matches(&[TokenType::RightSquare]) {
-                return Ok(Expr::Array { value: list })
+                return Ok(Expr::Array { value: list });
             }
 
             while !self.matches(&[TokenType::RightSquare]) {

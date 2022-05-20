@@ -23,7 +23,7 @@ impl Scanner {
                 b'(' => tokens.push(Token{r#type: TokenType::LeftParen,     lexeme: None, literal: None, line: self.line}),
                 b')' => tokens.push(Token{r#type: TokenType::RightParen,    lexeme: None, literal: None, line: self.line}),
                 b'[' => tokens.push(Token{r#type: TokenType::LeftSquare,    lexeme: None, literal: None, line: self.line}),
-                b']' => tokens.push(Token{r#type: TokenType::RightSquare,    lexeme: None, literal: None, line: self.line}),
+                b']' => tokens.push(Token{r#type: TokenType::RightSquare,   lexeme: None, literal: None, line: self.line}),
                 b'{' => tokens.push(Token{r#type: TokenType::LeftBrace,     lexeme: None, literal: None, line: self.line}),
                 b'}' => tokens.push(Token{r#type: TokenType::RightBrace,    lexeme: None, literal: None, line: self.line}),
                 b',' => tokens.push(Token{r#type: TokenType::Comma,         lexeme: None, literal: None, line: self.line}),
@@ -108,21 +108,21 @@ impl Scanner {
                         tokens.push(Token { r#type, lexeme, literal, line: self.line })
                     } else {
                         is_error = true;
-                        errors.push(AliceError::SyntaxError(format!("unknown '{}'.", byte as char).into(), self.line));
+                        errors.push(AliceError::SyntaxError(format!("unknown token '{}'.", byte as char).into(), self.line));
                     }
                 }
             }
         }
 
         if is_error {
-            return Err(errors)
+            return Err(errors);
         }
 
         tokens.push(Token {
             r#type: TokenType::Eof,
             lexeme: None,
             literal: None,
-            line: self.line
+            line: self.line - 1
         });
 
         Ok(tokens)
@@ -184,19 +184,19 @@ impl Scanner {
 
         let id = String::from_utf8(self.source[start_index..self.current].to_vec()).unwrap();
         match id.as_str() {
-            "and"       =>    (TokenType::And, None, None),
-            "or"        =>    (TokenType::Or, None, None),
-            "if"        =>    (TokenType::If, None, None),
-            "else"      =>    (TokenType::Else, None, None),
-            "true"      =>    (TokenType::True, None, None),
-            "false"     =>    (TokenType::False, None, None),
-            "fn"        =>    (TokenType::Fn, None, None),
-            "let"       =>    (TokenType::Let, None, None),
-            "nil"       =>    (TokenType::Nil, None, None),
-            "println"   =>    (TokenType::Println, None, None),
-            "return"    =>    (TokenType::Return, None, None),
-            "for"       =>    (TokenType::For, None, None),
-            "in"        =>    (TokenType::In, None, None),
+            "and"       =>    (TokenType::And,      None, None),
+            "or"        =>    (TokenType::Or,       None, None),
+            "if"        =>    (TokenType::If,       None, None),
+            "else"      =>    (TokenType::Else,     None, None),
+            "true"      =>    (TokenType::True,     None, None),
+            "false"     =>    (TokenType::False,    None, None),
+            "fn"        =>    (TokenType::Fn,       None, None),
+            "let"       =>    (TokenType::Let,      None, None),
+            "nil"       =>    (TokenType::Nil,      None, None),
+            "println"   =>    (TokenType::Println,  None, None),
+            "return"    =>    (TokenType::Return,   None, None),
+            "for"       =>    (TokenType::For,      None, None),
+            "in"        =>    (TokenType::In,       None, None),
             _ => {
                 (TokenType::Identifier, Some(id.clone()), Some(Literal::Id(id)))
             }

@@ -1,0 +1,33 @@
+// 变量
+// type: nil, boolean, i64, f64, string, array
+let v; // nil
+let str = "hello alice.";
+let num = 114514;
+let arr = [1, 2, 3];
+let dyn_arr = [114514, "hello alice", true];
+println(dyn_arr);
+println();
+
+// 判断
+let bool = true;
+if bool {
+  println("^_^");
+} else {
+  println("QWQ");
+}
+println();
+
+// 循环
+for item in dyn_arr {
+  println(item);
+}
+println();
+
+for index in [0..7] {
+  println(index); // 0 -- 6
+}
+
+println();
+for i in (dyn_arr) {
+  println(i);
+}
