@@ -141,10 +141,10 @@ impl Parser {
         let expression = self.expression()?;
 
         if self.matches(&[TokenType::LeftBrace]) {
-            let block = self.block()?;
-            Ok(Stmt::For { value, expression, body: block }) 
+            let body = self.block()?;
+            Ok(Stmt::For { value, expression, body }) 
         } else {
-            return Err(AliceError::ParseError("Expect '{' after [...].".into(), self.peek().line));
+            return Err(AliceError::ParseError("Expect '{'.".into(), self.peek().line));
         }
     }
 
@@ -328,10 +328,11 @@ impl Parser {
                         return Err(e);
                     }
                 };
+                
                 list.push(expr);
             }
 
-            return Ok(Expr::Array { value: list })
+            return Ok(Expr::Array { value: list });
         }
 
         Err(AliceError::ParseError("Expect expression.".into(), self.peek().line))
@@ -339,6 +340,7 @@ impl Parser {
 }
 
 impl Parser {
+    #[inline]
     fn matches(&mut self, types: &[TokenType]) -> bool {
         for &t in types {
             if self.check(t) {
@@ -350,6 +352,7 @@ impl Parser {
         false
     }
 
+    #[inline]
     fn check(&self, t: TokenType) -> bool {
         if self.is_at_end() {
             return false;
@@ -381,15 +384,6 @@ impl Parser {
     }
 
     #[inline]
-    fn back(&mut self) -> bool {
-        if self.current > 0 {
-            self.current -= 1;
-            true
-        } else {
-            false
-        }
-    }
-
     fn consume<'a>(&'a mut self, t: TokenType, msg: &'a str) -> Result<Token, AliceError> {
         if self.check(t) {
             return Ok(self.advance());

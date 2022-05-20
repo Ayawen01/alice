@@ -5,6 +5,7 @@ let str = "hello alice.";
 let num = 114514;
 let arr = [1, 2, 3];
 let dyn_arr = [114514, "hello alice", true];
+println();
 println(dyn_arr);
 println();
 
