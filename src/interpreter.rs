@@ -47,7 +47,7 @@ impl Interpreter {
         match value {
             AliceObject::String(str) => str,
             AliceObject::Array(list) => format!("{:?}", list),
-            AliceObject::Range(start, end) => format!("{:?}", value),
+            AliceObject::Range(..) => format!("{:?}", value),
             AliceObject::F64(num) => num.to_string(),
             AliceObject::I64(num) => num.to_string(),
             AliceObject::Boolean(bool) => bool.to_string(),
@@ -69,26 +69,49 @@ impl Interpreter {
         Ok(())
     }
 
-    fn execute_array(&mut self, name: Token, list: AliceObject, body: Vec<Stmt>) {
-        if let AliceObject::Array(array) = list {
-            for item in array {
-                self.environment.borrow_mut().assign(name.clone(), item).unwrap();
-                self.execute_block(body.clone(), self.environment.clone()).unwrap();
-            }
-        };
+    fn execute_array_range_block(&mut self, statements: Vec<Stmt>, environment: Rc<RefCell<Environment>>) -> Result<(), AliceError> {
+        let previous = self.environment.clone();
+
+        self.environment = environment;
+
+        for stmt in statements {
+            self.execute(stmt)?;
+        }
+
+        self.environment = previous;
+
+        Ok(())
     }
 
-    fn execute_range(&mut self, name: Token, range: AliceObject, body: Vec<Stmt>) {
-        if let AliceObject::Range(start, end) = range {
-            let mut index = start;
-            while index < end {
+    fn execute_array(&mut self, name: Token, list: AliceObject, body: Vec<Stmt>) -> Result<(), AliceError> {
+        if let AliceObject::Array(array) = list {
+            let lexeme = name.clone().lexeme.unwrap();
+            let environment = Rc::new(RefCell::new(Environment::from(self.environment.clone())));
+            environment.borrow_mut().define(lexeme, AliceObject::Nil);
+            for item in array {
+                environment.borrow_mut().assign(name.clone(), item)?;
+                self.execute_array_range_block(body.clone(), environment.clone())?;
+            }
+        };
 
-                self.environment.borrow_mut().assign(name.clone(), AliceObject::I64(index)).unwrap();
-                self.execute_block(body.clone(), self.environment.clone()).unwrap();
+        Ok(())
+    }
+
+    fn execute_range(&mut self, name: Token, range: AliceObject, body: Vec<Stmt>) -> Result<(), AliceError> {
+        if let AliceObject::Range(start, end) = range {
+            let lexeme = name.clone().lexeme.unwrap();
+            let mut index = start;
+            let environment = Rc::new(RefCell::new(Environment::from(self.environment.clone())));
+            environment.borrow_mut().define(lexeme, AliceObject::Nil);
+            while index < end {
+                environment.borrow_mut().assign(name.clone(), AliceObject::I64(index))?;
+                self.execute_array_range_block(body.clone(), environment.clone())?;
 
                 index += 1;
             }
         };
+
+        Ok(())
     }
 }
 
@@ -109,7 +132,7 @@ impl VisitExpr<AliceObject> for Interpreter {
     fn visit_unary_expr(&mut self, operator: Token, value: Expr) -> Result<AliceObject, AliceError> {
         let value = self.evaluate(value)?;
         
-        Ok(match operator.r#type {
+        let v = match operator.r#type {
             TokenType::Bang => AliceObject::Boolean(!self.is_truthy(&value)),
             TokenType::Minus => {
                 if let AliceObject::F64(num) = value {
@@ -122,7 +145,9 @@ impl VisitExpr<AliceObject> for Interpreter {
                 }
             }
             _ => AliceObject::Nil
-        })
+        };
+
+        Ok(v)
     }
 
     fn visit_binary_expr(&mut self, left: Expr, operator: Token, right: Expr) -> Result<AliceObject, AliceError> {
@@ -133,9 +158,9 @@ impl VisitExpr<AliceObject> for Interpreter {
             TokenType::BangEqual => Ok(AliceObject::Boolean(!self.is_equal(&left, &right))),
             TokenType::EqualEqual => Ok(AliceObject::Boolean(self.is_equal(&left, &right))),
             TokenType::Greater => {
-                if let (AliceObject::F64(l), AliceObject::F64(r)) = (left.clone(), right.clone()) {
+                if let (AliceObject::F64(l), AliceObject::F64(r)) = (&left, &right) {
                     Ok(AliceObject::Boolean(l > r))
-                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (left.clone(), right.clone()) {
+                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (&left, &right) {
                     Ok(AliceObject::Boolean(l > r))
                 } else {
                     let msg = format!("{:?} and {:?} must be numbers.", left, right);
@@ -143,9 +168,9 @@ impl VisitExpr<AliceObject> for Interpreter {
                 }
             },
             TokenType::GreaterEqual => {
-                if let (AliceObject::F64(l), AliceObject::F64(r)) = (left.clone(), right.clone()) {
+                if let (AliceObject::F64(l), AliceObject::F64(r)) = (&left, &right) {
                     Ok(AliceObject::Boolean(l >= r))
-                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (left.clone(), right.clone()) {
+                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (&left, &right) {
                     Ok(AliceObject::Boolean(l >= r))
                 } else {
                     let msg = format!("{:?} and {:?} must be numbers.", left, right);
@@ -153,9 +178,9 @@ impl VisitExpr<AliceObject> for Interpreter {
                 }
             },
             TokenType::Less => {
-                if let (AliceObject::F64(l), AliceObject::F64(r)) = (left.clone(), right.clone()) {
+                if let (AliceObject::F64(l), AliceObject::F64(r)) = (&left, &right) {
                     Ok(AliceObject::Boolean(l < r))
-                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (left.clone(), right.clone()) {
+                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (&left, &right) {
                     Ok(AliceObject::Boolean(l < r))
                 } else {
                     let msg = format!("{:?} and {:?} must be numbers.", left, right);
@@ -163,9 +188,9 @@ impl VisitExpr<AliceObject> for Interpreter {
                 }
             },
             TokenType::LessEqual => {
-                if let (AliceObject::F64(l), AliceObject::F64(r)) = (left.clone(), right.clone()) {
+                if let (AliceObject::F64(l), AliceObject::F64(r)) = (&left, &right) {
                     Ok(AliceObject::Boolean(l <= r))
-                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (left.clone(), right.clone()) {
+                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (&left, &right) {
                     Ok(AliceObject::Boolean(l <= r))
                 } else {
                     let msg = format!("{:?} and {:?} must be numbers.", left, right);
@@ -173,9 +198,9 @@ impl VisitExpr<AliceObject> for Interpreter {
                 }
             },
             TokenType::Minus => {
-                if let (AliceObject::F64(l), AliceObject::F64(r)) = (left.clone(), right.clone()) {
+                if let (AliceObject::F64(l), AliceObject::F64(r)) = (&left, &right) {
                     Ok(AliceObject::F64(l - r))
-                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (left.clone(), right.clone()) {
+                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (&left, &right) {
                     Ok(AliceObject::I64(l - r))
                 } else {
                     let msg = format!("{:?} and {:?} must be numbers.", left, right);
@@ -183,10 +208,10 @@ impl VisitExpr<AliceObject> for Interpreter {
                 }
             }
             TokenType::Plus => {
-                match (left.clone(), right.clone()) {
-                    (AliceObject::String(l), AliceObject::String(r)) => Ok(AliceObject::String(l + &r)),
-                    (AliceObject::String(l), AliceObject::F64(r)) => Ok(AliceObject::String(format!("{}{}", l, r))),
-                    (AliceObject::String(l), AliceObject::I64(r)) => Ok(AliceObject::String(format!("{}{}", l, r))),
+                match (&left, &right) {
+                    (AliceObject::String(l), AliceObject::String(r)) => Ok(AliceObject::String(format!("{l}{r}"))),
+                    (AliceObject::String(l), AliceObject::F64(r)) => Ok(AliceObject::String(format!("{l}{r}"))),
+                    (AliceObject::String(l), AliceObject::I64(r)) => Ok(AliceObject::String(format!("{l}{r}"))),
                     (AliceObject::F64(l), AliceObject::F64(r)) => Ok(AliceObject::F64(l + r)),
                     (AliceObject::I64(l), AliceObject::I64(r)) => Ok(AliceObject::I64(l + r)),
                     _ => {
@@ -196,20 +221,20 @@ impl VisitExpr<AliceObject> for Interpreter {
                 }
             }
             TokenType::Slash => {
-                if let (AliceObject::F64(l), AliceObject::F64(r)) = (left.clone(), right.clone()) {
+                if let (AliceObject::F64(l), AliceObject::F64(r)) = (&left, &right) {
                     Ok(AliceObject::F64(l / r))
-                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (left.clone(), right.clone()) {
+                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (&left, &right) {
                     Ok(AliceObject::I64(l / r))
                 } else {
                     let msg = format!("{:?} and {:?} must be numbers.", left, right);
                     Err(AliceError::RuntimeError(msg.into(), operator.line))
                 }
             }
-            TokenType::Star => {
-                if let (AliceObject::F64(l), AliceObject::F64(r)) = (left.clone(), right.clone()) {
-                    Ok(AliceObject::F64(l * r))
-                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (left.clone(), right.clone()) {
-                    Ok(AliceObject::I64(l * r))
+            TokenType::PercentSign => {
+                if let (AliceObject::F64(l), AliceObject::F64(r)) = (&left, &right) {
+                    Ok(AliceObject::F64(l % r))
+                } else if let (AliceObject::I64(l), AliceObject::I64(r)) = (&left, &right) {
+                    Ok(AliceObject::I64(l % r))
                 } else {
                     let msg = format!("{:?} and {:?} must be numbers.", left, right);
                     Err(AliceError::RuntimeError(msg.into(), operator.line))
@@ -253,13 +278,13 @@ impl VisitExpr<AliceObject> for Interpreter {
         Ok(AliceObject::Array(values))
     }
 
-    fn visit_range_expr(&mut self, start: Expr, end: Expr) -> Result<AliceObject, AliceError> {
+    fn visit_range_expr(&mut self, start: Expr, end: Expr, line: u32) -> Result<AliceObject, AliceError> {
         let start = self.evaluate(start)?;
         let end = self.evaluate(end)?;
         if let (AliceObject::I64(l), AliceObject::I64(r)) = (start, end) {
             Ok(AliceObject::Range(l, r))
         } else {
-            Err(AliceError::RuntimeError("Range(i64..i64).".into(), 0))
+            Err(AliceError::RuntimeError("Range(i64..i64).".into(), line))
         }
     }
 }
@@ -278,7 +303,6 @@ impl VisitStmt<()> for Interpreter {
             println!();
             Ok(())
         }
-        
     }
 
     fn visit_return_stmt(&mut self, keyword: Token, value: Option<Expr>) -> Result<(), AliceError> {
@@ -325,16 +349,12 @@ impl VisitStmt<()> for Interpreter {
     }
 
     fn visit_for_stmt(&mut self, value: Token, expression: Expr, body: Vec<Stmt>) -> Result<(), AliceError> {
-        let v = value.clone();
-        let name = value.lexeme.unwrap();
-        self.environment.borrow_mut().define(name.clone(), AliceObject::Nil);
-
         let object = self.evaluate(expression)?;
 
-        if let AliceObject::Array(list) = object.clone() {
-            self.execute_array(v, object, body);
-        } else if let AliceObject::Range(start, end) = object.clone() {
-            self.execute_range(v, object, body);
+        if let AliceObject::Array(..) = &object {
+            self.execute_array(value, object, body)?;
+        } else if let AliceObject::Range(..) = &object {
+            self.execute_range(value, object, body)?;
         } else {
             return Err(AliceError::RuntimeError("Expect Array or Range(..) expression.".into(), value.line));
         }

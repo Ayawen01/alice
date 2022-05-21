@@ -32,3 +32,15 @@ println();
 for i in (dyn_arr) {
   println(i);
 }
+
+println("irene");
+println();
+
+let num = 0;
+for index in [0..100] {
+  if index % 2 == 0 {
+    num = num + index;
+  }
+}
+println("num:" + num);
+// println(index);

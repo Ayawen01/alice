@@ -32,6 +32,7 @@ impl Scanner {
                 b'+' => tokens.push(Token{r#type: TokenType::Plus,          lexeme: None, literal: None, line: self.line}),
                 b';' => tokens.push(Token{r#type: TokenType::Semicolon,     lexeme: None, literal: None, line: self.line}),
                 b'*' => tokens.push(Token{r#type: TokenType::Star,          lexeme: None, literal: None, line: self.line}),
+                b'%' => tokens.push(Token{r#type: TokenType::PercentSign,   lexeme: None, literal: None, line: self.line }),
 
                 b'!' => {
                     let token_type = if self.matching(b'=') {

@@ -235,7 +235,7 @@ impl Parser {
     fn factor(&mut self) -> Result<Expr, AliceError> {
         let mut expr = self.unary()?;
 
-        while self.matches(&[TokenType::Slash, TokenType::Star]) {
+        while self.matches(&[TokenType::Slash, TokenType::Star, TokenType::PercentSign]) {
             let operator = self.previous();
             let right = self.unary()?;
             expr = Expr::Binary {
@@ -314,12 +314,13 @@ impl Parser {
                 let expr = self.expression()?;
 
                 if self.peek().r#type == TokenType::Dot {
+                    let line = self.peek().line;
                     self.advance();
                     if self.peek().r#type == TokenType::Dot {
                         self.advance();
                         let end = self.expression()?;
                         self.advance();
-                        return Ok(Expr::Range { start: Box::new(expr), end: Box::new(end) });
+                        return Ok(Expr::Range { start: Box::new(expr), end: Box::new(end), line });
                     }
                 }
 

@@ -22,7 +22,7 @@ pub enum Literal {
 pub enum TokenType {
     // Single-character tokens.
     LeftParen, RightParen, LeftBrace, RightBrace, LeftSquare, RightSquare,
-    Comma, Dot, Minus, Plus, Slash, Star, Semicolon,
+    Comma, Dot, Minus, Plus, Slash, Star, PercentSign, Semicolon,
 
     // One or two character tokens.
     Bang, BangEqual,
